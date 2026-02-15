@@ -101,13 +101,79 @@ cd ~/Downloads/politics-infomation-collect-main
 
 ### Step 3：依存パッケージをインストールする
 
+このツールは複数のライブラリ（他の人が作った便利なプログラム部品）を使って動いています。
+`npm install` コマンドで、それらを一括ダウンロードします。
+
+#### 3-1. ターミナルがツールのフォルダにいることを確認する
+
+まず、ターミナルが正しいフォルダ（Step 2でダウンロードしたフォルダ）にいることを確認します。
+以下を入力して Enter を押してください：
+
+**Windows（PowerShell）の場合：**
+```powershell
+dir package.json
+```
+
+**Mac / Linux の場合：**
+```bash
+ls package.json
+```
+
+`package.json` というファイルが表示されればOKです。
+もし「見つかりません」「No such file」と出た場合は、正しいフォルダに移動できていません。
+以下のように `cd` コマンドでフォルダを移動してください：
+
+```bash
+# Git clone した場合
+cd politics-infomation-collect
+
+# ZIPダウンロードした場合（Windows 例）
+cd C:\Users\あなたのユーザー名\Downloads\politics-infomation-collect-main
+
+# ZIPダウンロードした場合（Mac 例）
+cd ~/Downloads/politics-infomation-collect-main
+```
+
+#### 3-2. npm install を実行する
+
 ターミナルで以下を入力して Enter を押します：
 
 ```bash
 npm install
 ```
 
-たくさんの文字が流れますが、最後に `added XX packages` と表示されれば成功です。
+#### 3-3. 実行中の画面について
+
+実行すると、以下のようにたくさんの文字が流れます（30秒〜1分ほどかかることがあります）：
+
+```
+npm warn deprecated ...
+added 150 packages, and audited 151 packages in 30s
+```
+
+**気にしなくてよい表示：**
+- `npm warn deprecated ...` → 古いライブラリの警告です。動作に影響ありません
+- `npm warn ...` → 警告全般。`warn` は問題ではありません
+
+**成功の目印：** 最後の行に以下のような表示が出ていれば成功です：
+
+```
+added XX packages, and audited XX packages in XXs
+```
+
+（`XX` の部分は数字が入ります）
+
+#### 3-4. エラーが出た場合
+
+| エラー内容 | 原因と対処法 |
+|-----------|-------------|
+| `npm: command not found` | Node.js が正しくインストールされていません。Step 1 に戻ってください |
+| `EACCES: permission denied` | Mac/Linuxで権限エラーが出た場合、コマンドの先頭に `sudo` を付けて再実行してください：`sudo npm install` |
+| `ENOTFOUND` / `network error` | インターネットに接続されていません。Wi-Fi や LAN の接続を確認してください |
+| `npm ERR! code ERESOLVE` | `npm install --legacy-peer-deps` と入力して再実行してみてください |
+
+すべてうまくいくと、フォルダ内に `node_modules` というフォルダが新しく作成されます。
+これが依存パッケージの実体です（中身を触る必要はありません）。
 
 ---
 
