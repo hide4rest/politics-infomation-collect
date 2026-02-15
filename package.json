@@ -1,0 +1,31 @@
+{
+  "name": "ebina-city-council-assistant",
+  "version": "1.0.0",
+  "description": "神奈川県海老名市の行政情報を収集し、市議会一般質問を生成するアプリケーション",
+  "main": "dist/index.js",
+  "bin": {
+    "ebina-council": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node src/index.ts",
+    "collect": "ts-node src/index.ts collect",
+    "generate": "ts-node src/index.ts generate",
+    "schedule": "ts-node src/index.ts schedule"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "axios": "^1.7.0",
+    "cheerio": "^1.0.0",
+    "commander": "^12.1.0",
+    "cron": "^3.1.0",
+    "date-fns": "^4.1.0",
+    "date-fns-tz": "^3.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.6.0"
+  }
+}
