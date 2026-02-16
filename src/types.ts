@@ -75,6 +75,57 @@ export type QuestionCategory =
   | "産業・経済"
   | "行政運営・DX";
 
+/** ヒアリング項目（行政側へ確認する事項） */
+export interface HearingItem {
+  /** ヒアリング対象分野 */
+  topic: string;
+  /** ヒアリング先の部署名 */
+  department: string;
+  /** ヒアリング質問一覧 */
+  questions: string[];
+  /** 背景・意図 */
+  background: string;
+  /** 関連記事URL */
+  relatedArticles: string[];
+}
+
+/** ヒアリングシート（一回分のヒアリング項目集） */
+export interface HearingSheet {
+  /** 作成日時 */
+  createdAt: string;
+  /** ヒアリング項目一覧 */
+  items: HearingItem[];
+}
+
+/** ヒアリング回答（ユーザーが入力する行政側の回答） */
+export interface HearingResponse {
+  /** 対応するヒアリング項目のトピック */
+  topic: string;
+  /** 各質問に対する回答 */
+  answers: {
+    question: string;
+    answer: string;
+  }[];
+  /** 自由記述メモ */
+  notes?: string;
+}
+
+/** ヒアリング回答シート */
+export interface HearingResponseSheet {
+  /** 作成日時 */
+  createdAt: string;
+  /** 回答一覧 */
+  responses: HearingResponse[];
+}
+
+/** 記事マスターストア（過去3年間の蓄積データ） */
+export interface ArticleStore {
+  /** 最終更新日時 */
+  lastUpdated: string;
+  /** 蓄積記事一覧 */
+  articles: CollectedArticle[];
+}
+
 /** アプリケーション設定 */
 export interface AppConfig {
   /** Anthropic API Key */

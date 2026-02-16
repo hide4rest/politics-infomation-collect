@@ -1,9 +1,20 @@
 import Anthropic from "@anthropic-ai/sdk";
-import type { CollectedArticle, GeneratedQuestion, QuestionCategory } from "./types";
+import type {
+  CollectedArticle,
+  GeneratedQuestion,
+  QuestionCategory,
+  HearingResponseSheet,
+} from "./types";
 
 /** 質問生成オプション */
 export interface GenerateOptions {
   /** 質問カテゴリのフィルタ（未指定で全カテゴリ） */
+  category?: QuestionCategory | null;
+}
+
+/** ヒアリング回答を踏まえた質問生成オプション */
+export interface RefineOptions {
+  /** 質問カテゴリのフィルタ */
   category?: QuestionCategory | null;
 }
 
@@ -133,6 +144,129 @@ ${categoryInstruction}
 8. **再質問の戦略**: 想定答弁を踏まえ、答弁の曖昧な部分や具体性が不足する部分を突く効果的な再質問を設計する
 9. **議事録の活用**: 議会議事録・会議録のデータがある場合は、過去の質問と重複しないよう配慮し、過去の答弁で示された方針のフォローアップや進捗確認を質問に含める
 10. **国・県の動向活用**: 国の新規法令、交付金、補助金の情報がある場合は、海老名市への影響や活用方針を問う質問を積極的に含める
+
+JSON形式のみを出力してください。`;
+  }
+
+  /** ヒアリング回答を踏まえて詳細な一般質問を生成 */
+  async generateFromHearing(
+    articles: CollectedArticle[],
+    hearingResponses: HearingResponseSheet,
+    options?: RefineOptions
+  ): Promise<GeneratedQuestion[]> {
+    if (hearingResponses.responses.length === 0) {
+      console.warn("ヒアリング回答がありません。");
+      return [];
+    }
+
+    const categorized = this.categorizeArticles(articles);
+    const summaryText = this.buildArticleSummary(categorized);
+    const hearingText = this.buildHearingResponseSummary(hearingResponses);
+
+    const category = options?.category ?? null;
+    if (category) {
+      console.log(`[質問生成（ヒアリング踏まえ）] カテゴリ「${category}」で絞り込み`);
+    }
+
+    console.log("[質問生成] ヒアリング回答を踏まえて Claude APIに分析を依頼中...");
+
+    const response = await this.client.messages.create({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 16000,
+      messages: [
+        {
+          role: "user",
+          content: this.buildRefinePrompt(summaryText, hearingText, category),
+        },
+      ],
+    });
+
+    const content = response.content[0];
+    if (content.type !== "text") {
+      throw new Error("予期しないレスポンス形式です");
+    }
+
+    return this.parseResponse(content.text, articles);
+  }
+
+  /** ヒアリング回答をテキスト形式にまとめる */
+  private buildHearingResponseSummary(
+    sheet: HearingResponseSheet
+  ): string {
+    const parts: string[] = [];
+    for (const resp of sheet.responses) {
+      parts.push(`\n## ${resp.topic}`);
+      for (const qa of resp.answers) {
+        parts.push(`\n**Q:** ${qa.question}`);
+        parts.push(`**A:** ${qa.answer || "（未回答）"}`);
+      }
+      if (resp.notes) {
+        parts.push(`\n**メモ:** ${resp.notes}`);
+      }
+    }
+    return parts.join("\n");
+  }
+
+  /** ヒアリング回答ベースの質問生成プロンプト */
+  private buildRefinePrompt(
+    summaryText: string,
+    hearingText: string,
+    category: QuestionCategory | null
+  ): string {
+    const categoryInstruction = category
+      ? `\n\n## カテゴリ指定\n\n「${category}」の分野に焦点を当てた質問を3〜5つ生成してください。\n`
+      : "";
+
+    return `あなたは神奈川県海老名市の市議会議員の政策秘書です。
+
+一般質問の擦り合わせ期間に行政側へヒアリングを行い、各担当部署から回答を得ました。
+以下に、（1）収集した行政情報と（2）ヒアリングで得た回答があります。
+
+これらの情報を総合的に分析し、**ヒアリング回答を踏まえた詳細な一般質問**を作成してください。
+ヒアリングで判明した事実・数値・スケジュール等を積極的に質問に反映してください。
+
+## 収集した行政情報
+
+${summaryText}
+
+## ヒアリング回答
+
+${hearingText}
+${categoryInstruction}
+## 出力要件
+
+以下のJSON形式で、3〜5つの一般質問を生成してください。
+ヒアリング回答から得られた具体的な情報（数値、スケジュール、方針等）を質問内容に織り込み、
+行政の答弁がより具体的なものになるよう、踏み込んだ質問にしてください。
+
+\`\`\`json
+[
+  {
+    "mainTopic": "大項目",
+    "background": "質問の背景と根拠（ヒアリングで判明した事実を含めること）",
+    "relatedArticles": ["関連記事のURL1"],
+    "subTopics": [
+      {
+        "title": "小項目タイトル",
+        "detailedQuestion": "詳細な質問内容（ヒアリングで得た情報を踏まえ、さらに踏み込んだ内容にすること）",
+        "expectedAnswer": "行政側の想定答弁（ヒアリング回答の内容を踏まえた現実的な答弁）",
+        "followUp": "想定答弁を踏まえた再質問（ヒアリングで曖昧だった部分や深掘りすべき点を突く）"
+      }
+    ]
+  }
+]
+\`\`\`
+
+## 質問作成のガイドライン
+
+1. **ヒアリング結果の活用**: ヒアリングで得た具体的な数値・事実・方針を質問の中で引用・言及する
+2. **深掘り**: ヒアリングで回答が曖昧だった部分、具体性が不足した部分を議場で改めて問う
+3. **整合性の確認**: ヒアリング回答と公開情報（収集記事）との間に矛盾や齟齬があれば、それを指摘する質問を含める
+4. **建設的な提案**: 行政の取り組みを評価しつつ、改善や発展の提案を含める
+5. **市民目線**: 市民生活への具体的な影響を質問に含める
+6. **形式**: 議場での一般質問として適切な敬体（です・ます調）で記述する
+7. **想定答弁の精度**: ヒアリング結果を踏まえ、行政が実際に答弁しそうな内容をリアルに記述する
+8. **再質問の戦略**: ヒアリングで得た情報をベースに、答弁の曖昧さを突く効果的な再質問を設計する
 
 JSON形式のみを出力してください。`;
   }

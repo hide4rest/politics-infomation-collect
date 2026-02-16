@@ -50,12 +50,14 @@ export class Scheduler {
 
     // 情報収集（全ソース：海老名市 + 国 + 県 + 議事録）
     const articles = await scraper.collectAllSources();
-    storage.saveArticles(articles);
+    const result = storage.mergeAndSaveArticles(articles);
+    console.log(`[スケジューラ] マスターストア: 新規 ${result.newCount} 件 / 合計 ${result.totalCount} 件`);
 
-    // 質問生成（APIキーがある場合のみ）
+    // 質問生成（APIキーがある場合のみ、マスターストアの全データを使用）
     if (this.config.anthropicApiKey) {
+      const allArticles = storage.loadAllArticles() ?? articles;
       const generator = new QuestionGenerator(this.config.anthropicApiKey);
-      const questions = await generator.generateQuestions(articles);
+      const questions = await generator.generateQuestions(allArticles);
       storage.saveQuestionsAsMarkdown(questions);
       storage.saveQuestionsAsJson(questions);
     } else {
