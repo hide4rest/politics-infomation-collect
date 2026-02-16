@@ -126,8 +126,9 @@ program
   .description("蓄積データからヒアリング項目を生成する（行政側への事前確認用）")
   .option("-f, --file <path>", "使用する記事データファイル（未指定でマスターストアを使用）")
   .option("-c, --category <category>", "カテゴリを指定（対話メニューをスキップ）")
+  .option("-d, --date <date>", "一般質問の予定日（例: 令和8年6月定例会, 2026-06-15）")
   .option("--all", "全カテゴリで生成（対話メニューをスキップ）")
-  .action(async (options: { file?: string; category?: string; all?: boolean }) => {
+  .action(async (options: { file?: string; category?: string; date?: string; all?: boolean }) => {
     const config = loadConfig();
 
     if (!config.anthropicApiKey) {
@@ -164,15 +165,20 @@ program
       category = await promptCategorySelection();
     }
 
+    const sessionDate = options.date ?? null;
+
     console.log("=== ヒアリング項目生成 ===\n");
     console.log(`対象記事数: ${articles.length} 件（蓄積データ）`);
     if (category) {
       console.log(`カテゴリ: ${category}`);
     }
+    if (sessionDate) {
+      console.log(`定例会予定: ${sessionDate}`);
+    }
     console.log("");
 
     const generator = new HearingGenerator(config.anthropicApiKey);
-    const sheet = await generator.generateHearingItems(articles, { category });
+    const sheet = await generator.generateHearingItems(articles, { category, sessionDate });
 
     const { mdPath, jsonPath } = storage.saveHearingSheet(sheet);
 
@@ -208,12 +214,14 @@ program
   .option("-r, --responses <path>", "ヒアリング回答ファイルのパス（未指定で最新を使用）")
   .option("-f, --file <path>", "使用する記事データファイル（未指定でマスターストアを使用）")
   .option("-c, --category <category>", "カテゴリを指定")
+  .option("-d, --date <date>", "一般質問の予定日（例: 令和8年6月定例会, 2026-06-15）")
   .option("--all", "全カテゴリで生成（対話メニューをスキップ）")
   .action(
     async (options: {
       responses?: string;
       file?: string;
       category?: string;
+      date?: string;
       all?: boolean;
     }) => {
       const config = loadConfig();
@@ -281,11 +289,16 @@ program
         category = await promptCategorySelection();
       }
 
+      const sessionDate = options.date ?? null;
+
       console.log("=== ヒアリング回答に基づく一般質問生成 ===\n");
       console.log(`対象記事数: ${articles.length} 件`);
       console.log(`ヒアリング回答: ${answeredCount}/${totalQuestions} 問回答済み`);
       if (category) {
         console.log(`カテゴリ: ${category}`);
+      }
+      if (sessionDate) {
+        console.log(`定例会予定: ${sessionDate}`);
       }
       console.log("");
 
@@ -293,7 +306,7 @@ program
       const questions = await generator.generateFromHearing(
         articles,
         hearingResponses,
-        { category }
+        { category, sessionDate }
       );
 
       const mdPath = storage.saveQuestionsAsMarkdown(questions);
@@ -324,8 +337,9 @@ program
   .description("収集済みの情報から一般質問を生成する（カテゴリ選択・想定答弁付き）")
   .option("-f, --file <path>", "使用する記事データファイル（未指定でマスターストアを使用）")
   .option("-c, --category <category>", "質問カテゴリを指定（対話メニューをスキップ）")
+  .option("-d, --date <date>", "一般質問の予定日（例: 令和8年6月定例会, 2026-06-15）")
   .option("--all", "全カテゴリで生成（対話メニューをスキップ）")
-  .action(async (options: { file?: string; category?: string; all?: boolean }) => {
+  .action(async (options: { file?: string; category?: string; date?: string; all?: boolean }) => {
     const config = loadConfig();
 
     if (!config.anthropicApiKey) {
@@ -362,15 +376,20 @@ program
       category = await promptCategorySelection();
     }
 
+    const sessionDate = options.date ?? null;
+
     console.log("=== 一般質問生成 ===\n");
     console.log(`対象記事数: ${articles.length} 件`);
     if (category) {
       console.log(`カテゴリ: ${category}`);
     }
+    if (sessionDate) {
+      console.log(`定例会予定: ${sessionDate}`);
+    }
     console.log("");
 
     const generator = new QuestionGenerator(config.anthropicApiKey);
-    const questions = await generator.generateQuestions(articles, { category });
+    const questions = await generator.generateQuestions(articles, { category, sessionDate });
 
     const mdPath = storage.saveQuestionsAsMarkdown(questions);
     const jsonPath = storage.saveQuestionsAsJson(questions);
@@ -399,8 +418,9 @@ program
   .description("情報収集から質問生成まで一括実行する（カテゴリ選択・想定答弁付き）")
   .option("--local-only", "海老名市の情報のみ収集する")
   .option("-c, --category <category>", "質問カテゴリを指定")
+  .option("-d, --date <date>", "一般質問の予定日（例: 令和8年6月定例会, 2026-06-15）")
   .option("--all", "全カテゴリで生成（対話メニューをスキップ）")
-  .action(async (options: { localOnly?: boolean; category?: string; all?: boolean }) => {
+  .action(async (options: { localOnly?: boolean; category?: string; date?: string; all?: boolean }) => {
     const config = loadConfig();
     const scraper = new EbinaScraper(config.maxArticles);
     const storage = new Storage(config.dataDir, config.outputDir);
@@ -440,10 +460,15 @@ program
         category = await promptCategorySelection();
       }
 
+      const sessionDate = options.date ?? null;
+      if (sessionDate) {
+        console.log(`定例会予定: ${sessionDate}`);
+      }
+
       console.log("\n[Step 2] 一般質問の生成\n");
       const allArticles = storage.loadAllArticles() ?? articles;
       const generator = new QuestionGenerator(config.anthropicApiKey);
-      const questions = await generator.generateQuestions(allArticles, { category });
+      const questions = await generator.generateQuestions(allArticles, { category, sessionDate });
 
       const mdPath = storage.saveQuestionsAsMarkdown(questions);
       storage.saveQuestionsAsJson(questions);

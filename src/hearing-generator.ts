@@ -9,6 +9,8 @@ import type {
 /** ヒアリング項目生成オプション */
 export interface HearingGenerateOptions {
   category?: QuestionCategory | null;
+  /** 一般質問を行う定例会の日付（例: "2026-06-15", "令和8年6月定例会"） */
+  sessionDate?: string | null;
 }
 
 /** Claude APIを使って収集情報からヒアリング項目を生成するモジュール */
@@ -33,8 +35,12 @@ export class HearingGenerator {
     const summaryText = this.buildArticleSummary(categorized);
 
     const category = options?.category ?? null;
+    const sessionDate = options?.sessionDate ?? null;
     if (category) {
       console.log(`[ヒアリング生成] カテゴリ「${category}」で絞り込み`);
+    }
+    if (sessionDate) {
+      console.log(`[ヒアリング生成] 定例会予定: ${sessionDate}`);
     }
 
     console.log("[ヒアリング生成] Claude APIに分析を依頼中...");
@@ -45,7 +51,7 @@ export class HearingGenerator {
       messages: [
         {
           role: "user",
-          content: this.buildPrompt(summaryText, category),
+          content: this.buildPrompt(summaryText, category, sessionDate),
         },
       ],
     });
@@ -92,10 +98,15 @@ export class HearingGenerator {
 
   private buildPrompt(
     summaryText: string,
-    category: QuestionCategory | null
+    category: QuestionCategory | null,
+    sessionDate: string | null
   ): string {
     const categoryInstruction = category
       ? `\n\n## カテゴリ指定\n\n「${category}」の分野に焦点を当てたヒアリング項目を生成してください。\n他の分野の情報も背景として活用して構いませんが、ヒアリングの主題は「${category}」に関連するものにしてください。\n`
+      : "";
+
+    const sessionInstruction = sessionDate
+      ? `\n\n## 一般質問の予定\n\n一般質問は **${sessionDate}** に行う予定です。\nこの日程を踏まえ、以下の点を考慮してヒアリング項目を作成してください：\n- 定例会の時期に合った旬のテーマ（予算審議時期なら予算関連、年度末なら進捗確認など）\n- 定例会までのスケジュールを意識した、実現可能なヒアリング内容\n- その時期に市民の関心が高まるであろう季節的・時事的なテーマ\n- 本日（${new Date().toLocaleDateString("ja-JP")}）から定例会までの準備期間を考慮した段取り\n`
       : "";
 
     return `あなたは神奈川県海老名市の市議会議員の政策秘書です。
@@ -107,7 +118,7 @@ export class HearingGenerator {
 ## 分析対象の行政情報
 
 ${summaryText}
-${categoryInstruction}
+${categoryInstruction}${sessionInstruction}
 ## 出力要件
 
 以下のJSON形式で、5〜8つのヒアリング項目を生成してください。

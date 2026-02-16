@@ -10,12 +10,16 @@ import type {
 export interface GenerateOptions {
   /** 質問カテゴリのフィルタ（未指定で全カテゴリ） */
   category?: QuestionCategory | null;
+  /** 一般質問を行う定例会の日付（例: "2026-06-15", "令和8年6月定例会"） */
+  sessionDate?: string | null;
 }
 
 /** ヒアリング回答を踏まえた質問生成オプション */
 export interface RefineOptions {
   /** 質問カテゴリのフィルタ */
   category?: QuestionCategory | null;
+  /** 一般質問を行う定例会の日付 */
+  sessionDate?: string | null;
 }
 
 /** Claude APIを使って収集情報から議会一般質問を生成するモジュール */
@@ -41,8 +45,12 @@ export class QuestionGenerator {
     const summaryText = this.buildArticleSummary(categorized);
 
     const category = options?.category ?? null;
+    const sessionDate = options?.sessionDate ?? null;
     if (category) {
       console.log(`[質問生成] カテゴリ「${category}」で絞り込み`);
+    }
+    if (sessionDate) {
+      console.log(`[質問生成] 定例会予定: ${sessionDate}`);
     }
 
     console.log("[質問生成] Claude APIに分析を依頼中...");
@@ -53,7 +61,7 @@ export class QuestionGenerator {
       messages: [
         {
           role: "user",
-          content: this.buildPrompt(summaryText, category),
+          content: this.buildPrompt(summaryText, category, sessionDate),
         },
       ],
     });
@@ -95,9 +103,13 @@ export class QuestionGenerator {
   }
 
   /** プロンプトを構築 */
-  private buildPrompt(summaryText: string, category: QuestionCategory | null): string {
+  private buildPrompt(summaryText: string, category: QuestionCategory | null, sessionDate: string | null): string {
     const categoryInstruction = category
       ? `\n\n## カテゴリ指定\n\n「${category}」の分野に焦点を当てた質問を3〜5つ生成してください。\n他の分野の情報も背景や根拠として活用して構いませんが、質問の主題は「${category}」に関連するものにしてください。\n`
+      : "";
+
+    const sessionInstruction = sessionDate
+      ? `\n\n## 一般質問の予定\n\n一般質問は **${sessionDate}** に行う予定です。\nこの日程を踏まえ、以下の点を考慮して質問を作成してください：\n- 定例会の時期に即したタイムリーなテーマ（例：6月定例会なら新年度施策の進捗、12月定例会なら次年度予算への要望）\n- その時期に施行・適用される国や県の新制度があれば優先的に取り上げる\n- 季節的に市民の関心が高まるテーマ（防災：台風シーズン前、教育：入学シーズン前など）\n- 大項目の表現に「${sessionDate}」の定例会であることを反映する（例：「令和○年○月定例会」）\n`
       : "";
 
     return `あなたは神奈川県海老名市の市議会議員の政策秘書です。
@@ -107,7 +119,7 @@ export class QuestionGenerator {
 ## 分析対象の行政情報
 
 ${summaryText}
-${categoryInstruction}
+${categoryInstruction}${sessionInstruction}
 ## 出力要件
 
 以下のJSON形式で、3〜5つの一般質問を生成してください。
@@ -164,8 +176,12 @@ JSON形式のみを出力してください。`;
     const hearingText = this.buildHearingResponseSummary(hearingResponses);
 
     const category = options?.category ?? null;
+    const sessionDate = options?.sessionDate ?? null;
     if (category) {
       console.log(`[質問生成（ヒアリング踏まえ）] カテゴリ「${category}」で絞り込み`);
+    }
+    if (sessionDate) {
+      console.log(`[質問生成（ヒアリング踏まえ）] 定例会予定: ${sessionDate}`);
     }
 
     console.log("[質問生成] ヒアリング回答を踏まえて Claude APIに分析を依頼中...");
@@ -176,7 +192,7 @@ JSON形式のみを出力してください。`;
       messages: [
         {
           role: "user",
-          content: this.buildRefinePrompt(summaryText, hearingText, category),
+          content: this.buildRefinePrompt(summaryText, hearingText, category, sessionDate),
         },
       ],
     });
@@ -211,10 +227,15 @@ JSON形式のみを出力してください。`;
   private buildRefinePrompt(
     summaryText: string,
     hearingText: string,
-    category: QuestionCategory | null
+    category: QuestionCategory | null,
+    sessionDate: string | null
   ): string {
     const categoryInstruction = category
       ? `\n\n## カテゴリ指定\n\n「${category}」の分野に焦点を当てた質問を3〜5つ生成してください。\n`
+      : "";
+
+    const sessionInstruction = sessionDate
+      ? `\n\n## 一般質問の予定\n\n一般質問は **${sessionDate}** に行う予定です。\nこの日程を踏まえ、以下の点を考慮して質問を作成してください：\n- 定例会の時期に即したタイムリーなテーマ\n- その時期に施行・適用される国や県の新制度があれば優先的に取り上げる\n- 季節的に市民の関心が高まるテーマ\n- 大項目の表現に定例会の時期を反映する\n- ヒアリングで得た情報の中で、定例会時点で特に旬となるものを重視する\n`
       : "";
 
     return `あなたは神奈川県海老名市の市議会議員の政策秘書です。
@@ -232,7 +253,7 @@ ${summaryText}
 ## ヒアリング回答
 
 ${hearingText}
-${categoryInstruction}
+${categoryInstruction}${sessionInstruction}
 ## 出力要件
 
 以下のJSON形式で、3〜5つの一般質問を生成してください。
