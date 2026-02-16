@@ -96,8 +96,15 @@ export class Storage {
         lines.push(`> ${sub.detailedQuestion}`);
         lines.push("");
 
+        if (sub.expectedAnswer) {
+          lines.push("**想定答弁：**");
+          lines.push("");
+          lines.push(`> ${sub.expectedAnswer}`);
+          lines.push("");
+        }
+
         if (sub.followUp) {
-          lines.push("**再質問（想定）：**");
+          lines.push("**再質問（想定答弁を踏まえて）：**");
           lines.push("");
           lines.push(`> ${sub.followUp}`);
           lines.push("");

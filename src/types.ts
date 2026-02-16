@@ -21,7 +21,11 @@ export type ArticleCategory =
   | "施政方針"
   | "市議会"
   | "パブリックコメント"
-  | "計画・政策";
+  | "計画・政策"
+  | "国の法令・制度"
+  | "補助金・交付金"
+  | "県の施策"
+  | "議会議事録";
 
 /** スクレイピング対象の定義 */
 export interface ScrapeTarget {
@@ -54,9 +58,22 @@ export interface SubTopic {
   title: string;
   /** 詳細な質問内容 */
   detailedQuestion: string;
-  /** 想定される答弁への再質問 */
+  /** 行政側の想定答弁 */
+  expectedAnswer?: string;
+  /** 想定答弁を踏まえた再質問 */
   followUp?: string;
 }
+
+/** 質問生成時のカテゴリフィルタ */
+export type QuestionCategory =
+  | "子育て・教育"
+  | "まちづくり・都市計画"
+  | "財政・行財政改革"
+  | "福祉・医療"
+  | "防災・安全"
+  | "環境・エネルギー"
+  | "産業・経済"
+  | "行政運営・DX";
 
 /** アプリケーション設定 */
 export interface AppConfig {

@@ -1,9 +1,9 @@
 import axios, { type AxiosInstance } from "axios";
 import * as cheerio from "cheerio";
-import { EBINA_BASE_URL, SCRAPE_TARGETS } from "./config";
+import { SCRAPE_TARGETS, ALL_SCRAPE_TARGETS } from "./config";
 import type { CollectedArticle, ScrapeTarget } from "./types";
 
-/** 海老名市公式サイトからの情報収集モジュール */
+/** 行政サイトからの情報収集モジュール */
 export class EbinaScraper {
   private client: AxiosInstance;
   private maxArticles: number;
@@ -22,11 +22,21 @@ export class EbinaScraper {
     });
   }
 
-  /** 全対象サイトから情報を収集 */
+  /** 海老名市の情報のみ収集（従来互換） */
   async collectAll(): Promise<CollectedArticle[]> {
+    return this.collectFromTargets(SCRAPE_TARGETS);
+  }
+
+  /** 全ソース（国・県・議事録含む）から情報を収集 */
+  async collectAllSources(): Promise<CollectedArticle[]> {
+    return this.collectFromTargets(ALL_SCRAPE_TARGETS);
+  }
+
+  /** 指定されたターゲットから情報を収集 */
+  async collectFromTargets(targets: ScrapeTarget[]): Promise<CollectedArticle[]> {
     const allArticles: CollectedArticle[] = [];
 
-    for (const target of SCRAPE_TARGETS) {
+    for (const target of targets) {
       console.log(`[収集中] ${target.name}: ${target.url}`);
       try {
         const articles = await this.scrapeTarget(target);
@@ -65,7 +75,8 @@ export class EbinaScraper {
     }
 
     // リンクを抽出して個別ページも巡回
-    const links = await this.extractLinks(target.url, target.linkSelector);
+    const allowedDomain = this.extractOrigin(target.url);
+    const links = await this.extractLinks(target.url, target.linkSelector, allowedDomain);
     const targetLinks = links.slice(0, 10); // 各カテゴリ最大10リンク
 
     for (const link of targetLinks) {
@@ -139,7 +150,8 @@ export class EbinaScraper {
   /** ページからリンクを抽出 */
   private async extractLinks(
     url: string,
-    linkSelector: string
+    linkSelector: string,
+    allowedDomain: string
   ): Promise<Array<{ title: string; url: string }>> {
     try {
       const response = await this.client.get(url);
@@ -156,7 +168,7 @@ export class EbinaScraper {
 
           const absoluteUrl = this.resolveUrl(href, url);
           if (!absoluteUrl) return;
-          if (!absoluteUrl.startsWith(EBINA_BASE_URL)) return;
+          if (!absoluteUrl.startsWith(allowedDomain)) return;
           if (seen.has(absoluteUrl)) return;
 
           seen.add(absoluteUrl);
@@ -167,6 +179,15 @@ export class EbinaScraper {
       return links;
     } catch {
       return [];
+    }
+  }
+
+  /** URLからオリジン（ドメイン部分）を抽出 */
+  private extractOrigin(url: string): string {
+    try {
+      return new URL(url).origin;
+    } catch {
+      return url;
     }
   }
 

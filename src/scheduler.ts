@@ -48,8 +48,8 @@ export class Scheduler {
     const scraper = new EbinaScraper(this.config.maxArticles);
     const storage = new Storage(this.config.dataDir, this.config.outputDir);
 
-    // 情報収集
-    const articles = await scraper.collectAll();
+    // 情報収集（全ソース：海老名市 + 国 + 県 + 議事録）
+    const articles = await scraper.collectAllSources();
     storage.saveArticles(articles);
 
     // 質問生成（APIキーがある場合のみ）
