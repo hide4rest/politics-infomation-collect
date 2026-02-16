@@ -18,7 +18,7 @@ export function loadConfig(): AppConfig {
     outputDir: process.env.OUTPUT_DIR ?? path.resolve(process.cwd(), "output"),
     dataDir: process.env.DATA_DIR ?? path.resolve(process.cwd(), "data"),
     cronSchedule: process.env.CRON_SCHEDULE ?? "0 8 */14 * *", // 2週間に1度（8時）
-    maxArticles: Number(process.env.MAX_ARTICLES) || 50,
+    maxArticles: Number(process.env.MAX_ARTICLES) || 200,
   };
 }
 
