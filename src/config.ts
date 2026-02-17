@@ -153,12 +153,59 @@ export const MINUTES_SCRAPE_TARGETS: ScrapeTarget[] = [
   },
 ];
 
+/** 政治・行政ニュースのスクレイピング対象（過去半年の動向把握） */
+export const NEWS_SCRAPE_TARGETS: ScrapeTarget[] = [
+  {
+    name: "NHK 政治ニュース",
+    url: "https://www3.nhk.or.jp/news/cat04.html",
+    category: "政治・行政ニュース",
+    linkSelector: ".content--list a, .index-list a, a[href*='/news/html/'], main a",
+    contentSelector: ".content--detail-body, .body-text, #news_textbody, main article, #content",
+  },
+  {
+    name: "NHK 社会ニュース",
+    url: "https://www3.nhk.or.jp/news/cat01.html",
+    category: "政治・行政ニュース",
+    linkSelector: ".content--list a, .index-list a, a[href*='/news/html/'], main a",
+    contentSelector: ".content--detail-body, .body-text, #news_textbody, main article, #content",
+  },
+  {
+    name: "厚生労働省 報道発表",
+    url: "https://www.mhlw.go.jp/stf/houdou/index.html",
+    category: "政治・行政ニュース",
+    linkSelector: "#content a, .m-listNews a, a[href*='houdou'], main a",
+    contentSelector: "#content, .main-content, #main, main, article",
+  },
+  {
+    name: "国土交通省 報道発表",
+    url: "https://www.mlit.go.jp/report/press/index.html",
+    category: "政治・行政ニュース",
+    linkSelector: "#content a, .press-list a, a[href*='press'], main a",
+    contentSelector: "#content, .main-content, #main, main, article",
+  },
+  {
+    name: "環境省 報道発表",
+    url: "https://www.env.go.jp/press/index.html",
+    category: "政治・行政ニュース",
+    linkSelector: "#content a, .press-list a, a[href*='press'], main a",
+    contentSelector: "#content, .main-content, #main, main, article",
+  },
+  {
+    name: "内閣官房 新着情報",
+    url: "https://www.cas.go.jp/jp/houdou/index.html",
+    category: "政治・行政ニュース",
+    linkSelector: "#content a, a[href*='houdou'], main a",
+    contentSelector: "#content, .main-content, #main, main, article",
+  },
+];
+
 /** 全スクレイピング対象をまとめる */
 export const ALL_SCRAPE_TARGETS: ScrapeTarget[] = [
   ...SCRAPE_TARGETS,
   ...NATIONAL_SCRAPE_TARGETS,
   ...PREFECTURAL_SCRAPE_TARGETS,
   ...MINUTES_SCRAPE_TARGETS,
+  ...NEWS_SCRAPE_TARGETS,
 ];
 
 /** 質問カテゴリ一覧 */

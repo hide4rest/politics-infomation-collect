@@ -25,7 +25,8 @@ export type ArticleCategory =
   | "国の法令・制度"
   | "補助金・交付金"
   | "県の施策"
-  | "議会議事録";
+  | "議会議事録"
+  | "政治・行政ニュース";
 
 /** スクレイピング対象の定義 */
 export interface ScrapeTarget {
